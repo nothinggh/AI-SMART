@@ -1,0 +1,15 @@
+package com.example;
+
+public class Main {
+    public static void main(String[] args)
+  {
+        String url = "jdbc:sqlite:data/study.db";
+      
+
+    try () {
+        
+    } catch (SQLException e) {
+            System.out.println("errer: " + e.getMessage());
+    }
+  }
+}

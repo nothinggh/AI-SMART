@@ -1,0 +1,31 @@
+package com.example;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class Main {
+    public static void main(String[] args) {
+        String url = "jdbc:sqlite:data/study.db";
+        // String sql = "SELECT book_id, title, author, price FROM book ORDER BY
+        // book_id";
+        String sql = "SELECT book_id, title, author, price FROM book WHERE book_id=1";
+
+        try (Connection con = DriverManager.getConnection(url);
+                PreparedStatement ps = con.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int id = rs.getInt("book_id");
+                    String title = rs.getString("title");
+                    String author = rs.getString("author");
+                    int price = rs.getInt("price");
+                    System.out.printf("%d | %s | %s | %d원%n", id, title, author, price);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("연결 실패: " + e.getMessage());
+        }
+    }// end of main
+}// end of Main

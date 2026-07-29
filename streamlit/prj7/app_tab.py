@@ -1,0 +1,30 @@
+import streamlit as st
+
+tab1, tab2, tab3 = st.tabs(["생산", "품질", "검수"])
+
+with tab1:
+    st.write("생산 정보")
+# 상세 보기 expander
+with st.expander("상세 보기"):
+    st.write("생산량")
+    st.write("불량률")
+    st.write("설비상태")
+with tab2:
+    st.write("품질 정보")
+# 제품 상세 expander
+with st.expander("제품 상세 정보"):
+    st.write("제품명")
+    st.write("LOT")
+    st.write("생산일")
+
+with tab3:
+    st.write("설비 정보")
+    st.sidebar.title("MES")
+
+# 사이드 바 메뉴
+name = st.sidebar.text_input("사용자")
+st.write(name)
+
+menu = st.sidebar.selectbox("메뉴", ["생산", "품질", "설비"])
+
+st.write(menu)

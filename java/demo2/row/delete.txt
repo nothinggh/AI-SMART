@@ -1,0 +1,23 @@
+package com.example;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+public class Main {
+    public static void main(String[] args) {
+        String url = "jdbc:sqlite:data/study.db";
+        String sql = "DELETE FROM book WHERE book_id = ?";
+
+    try (Connection con = DriverManager.getConnection(url);
+        PreparedStatement ps = con.prepareStatement(sql)) {
+        ps.setInt(1, 2);
+        int count = ps.executeUpdate();
+        System.out.println(count == 1 ? "삭제 완료" : "해당 도서 없음");
+    } catch (SQLException e) {
+            System.out.println("실패: " + e.getMessage());
+    }
+
+    }
+}
