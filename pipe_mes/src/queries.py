@@ -3,13 +3,13 @@ from src.db import fetch_one, fetch_dataframe, fetch_all
 
 def table_counts():
     return fetch_dataframe("""
-        SELECT 'item' AS table_name, COUNT(*) AS row_count FROM item
+        SELECT 'BOM' AS table_name, COUNT(*) AS row_count FROM BOM
         UNION ALL
-        SELECT 'lot' AS table_name, COUNT(*) AS row_count FROM lot
+        SELECT 'MFP' AS table_name, COUNT(*) AS row_count FROM MFP
         UNION ALL
-        SELECT 'production' AS table_name, COUNT(*) AS row_count FROM production
+        SELECT 'INST' AS table_name, COUNT(*) AS row_count FROM INST
         UNION ALL
-        SELECT 'production_material' AS table_name, COUNT(*) AS row_count FROM production_material
+        SELECT 'YDP' AS table_name, COUNT(*) AS row_count FROM YDP
         """)
 
 
