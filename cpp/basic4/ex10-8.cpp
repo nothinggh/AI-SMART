@@ -14,7 +14,7 @@ int main()
     vector<int>::iterator it; // 이터레이터 변수 생성
 
     for (it = v.begin(); it != v.end(); it++)
-    {
+    
         {
             cout << *it << " ";
         }
@@ -23,5 +23,5 @@ int main()
         v[0] = 10;
         cout << v[0] << endl;
         return 0;
-    }
+    
 }
