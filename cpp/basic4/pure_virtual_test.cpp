@@ -1,8 +1,8 @@
 #include <iostream>
 using namespace std;
 
-class Shape
-{ // 순수 가상 함수가 1개라도 있으면 추상클래스가 된다.
+class Shape // 순수 가상 함수가 1개라도 있으면 추상클래스가 된다.
+{ 
 public:
     virtual void draw() = 0; // 순수 가상 함수
 };
@@ -18,5 +18,5 @@ int main()
     // Shape shape;
     Circle Circle;
 
-    return 0;
+   return 0;
 }
