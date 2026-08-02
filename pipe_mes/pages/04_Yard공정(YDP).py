@@ -1,5 +1,5 @@
 import sqlite3
-import pandas as pd
+import pandas as pd # type: ignore
 import streamlit as st
 from datetime import datetime, time
 
@@ -37,9 +37,9 @@ def init_db():
 
 init_db()
 
-st.markdown("---")
+
 st.title("Yard 공정(YDP)")
-st.markdown("##### (Yard Process)")
+st.markdown("##### (Yard Delivery Process)")
 st.markdown("---")
 
 menu = st.radio("", ["1. Yard 공정 등록", "2. Yard 공정 관리"], horizontal=True)

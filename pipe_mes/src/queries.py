@@ -1,4 +1,7 @@
-from src.db import fetch_one, fetch_dataframe, fetch_all
+import streamlit as st
+import pandas as pd  # type: ignore
+
+from src.db import fetch_dataframe, fetch_all, fetch_one
 
 
 def table_counts():
@@ -7,10 +10,13 @@ def table_counts():
         UNION ALL
         SELECT 'MFP' AS table_name, COUNT(*) AS row_count FROM MFP
         UNION ALL
-        SELECT 'INST' AS table_name, COUNT(*) AS row_count FROM INST
+        SELECT 'INSP' AS table_name, COUNT(*) AS row_count FROM INSP
         UNION ALL
         SELECT 'YDP' AS table_name, COUNT(*) AS row_count FROM YDP
         """)
+
+
+##########################################################################
 
 
 def table_list():
@@ -22,361 +28,278 @@ def table_list():
         """)
 
 
-def items(keyword: str = "", item_type: str = "전체"):
-    params: list[str] = []
-    where = ["1 = 1"]
+##########################################################################
+
+
+def bom_summary_by_ship(keyword: str = ""):
+    """호선(ship_no)별 BOM 총수량, 총중량, 총금액을 집계합니다."""
+    where = ["ship_no IS NOT NULL AND ship_no != ''"]
+    params = []
 
     if keyword:
-        where.append("(i.item_code LIKE ? OR i.item_name LIKE ?)")
-        params.extend([f"%{keyword}%", f"%{keyword}%"])
+        where.append("ship_no LIKE ?")
+        params.append(f"%{keyword}%")
 
-    if item_type != "전체":
-        where.append("i.item_type = ?")
-        params.append(item_type)
+    where_clause = " AND ".join(where)
 
     return fetch_dataframe(
         f"""
         SELECT
-            i.item_id,
-            i.item_code,
-            i.item_name,
-            i.item_type,
-            i.unit,
-            i.is_active,
-            COUNT(DISTINCT l.lot_id) AS lot_count,
-            COUNT(DISTINCT pm.production_material_id) AS material_use_count
-        FROM item AS i
-        LEFT JOIN lot AS l
-            ON i.item_id = l.item_id
-        LEFT JOIN production_material AS pm
-            ON i.item_id = pm.material_item_id
-        WHERE {' AND '.join(where)}
-        GROUP BY
-            i.item_id,
-            i.item_code,
-            i.item_name,
-            i.item_type,
-            i.unit,
-            i.is_active
-        ORDER BY i.item_type, i.item_code
+            ship_no,
+            COALESCE(SUM(quantity), 0) AS total_quantity,
+            ROUND(COALESCE(SUM(weight), 0), 2) AS total_weight,
+            COALESCE(SUM(price * quantity), 0) AS total_price
+        FROM BOM
+        WHERE {where_clause}
+        GROUP BY ship_no
+        ORDER BY ship_no
         """,
         tuple(params),
     )
 
 
+##########################################################################
+
+
 def item_type_counts():
+    """품목 타입(item_type)별 수량, 중량, 금액 집계"""
     return fetch_dataframe("""
-        SELECT item_type, COUNT(*) AS item_count
-        FROM item
+        SELECT 
+            item_type,
+            COALESCE(SUM(quantity), 0) AS total_quantity,
+            ROUND(COALESCE(SUM(weight), 0), 2) AS total_weight,
+            COALESCE(SUM(price * quantity), 0) AS total_price
+        FROM BOM
         GROUP BY item_type
         ORDER BY item_type
         """)
 
 
-def lots(keyword: str = "", lot_type: str = "전체", item_id: int | None = None):
-    params: list[object] = []
-    where = ["1 = 1"]
+##########################################################################
 
-    if keyword:
-        where.append("l.lot_no LIKE ?")
-        params.append(f"%{keyword}%")
 
-    if lot_type != "전체":
-        where.append("l.lot_type = ?")
-        params.append(lot_type)
-
-    if item_id:
-        where.append("l.item_id = ?")
-        params.append(item_id)
-
+def bom_by_ship_no(ship_no: str):
     return fetch_dataframe(
-        f"""
-        SELECT
-            l.lot_id,
-            l.lot_no,
-            i.item_code,
-            i.item_name,
-            i.item_type,
-            l.lot_type,
-            l.qty,
-            l.received_date,
-            l.produced_date,
-            l.expire_date
-        FROM lot AS l
-        JOIN item AS i
-            ON l.item_id = i.item_id
-        WHERE {' AND '.join(where)}
-        ORDER BY
-            COALESCE(l.received_date, l.produced_date),
-            l.lot_no
+        """
+        SELECT 
+            id,
+            user_id,
+            ship_no,
+            item_type,
+            material,
+            size,
+            quantity,
+            weight,
+            price,
+            order_date,
+            request_note
+        FROM BOM
+        WHERE ship_no = ?
+        ORDER BY id
         """,
-        tuple(params),
+        (ship_no,),
     )
 
 
-def lots_for_select(lot_type: str | None = None):
-    params: tuple = ()
-    where = ""
-    if lot_type:
-        where = "WHERE l.lot_type = ?"
-        params = (lot_type,)
-
-    return fetch_all(
-        f"""
-        SELECT
-            l.lot_id,
-            l.lot_no,
-            l.item_id,
-            i.item_name,
-            l.lot_type,
-            l.qty
-        FROM lot AS l
-        JOIN item AS i
-            ON l.item_id = i.item_id
-        {where}
-        ORDER BY l.lot_no
-        """,
-        params,
-    )
+##########################################################################
 
 
-def active_items_for_select(item_type: str | None = None):
-    params: tuple = ()
-    where = "WHERE is_active = 'Y'"
-    if item_type:
-        where += " AND item_type = ?"
-        params = (item_type,)
+def get_ship_summary_df():
+    query = """
+    SELECT 
+        ship_no AS ship_no,
+        manager AS manufacturer,
+        COUNT(DISTINCT unit_no) AS drawing_count,
+        COUNT(CASE WHEN issue IS NOT NULL AND TRIM(issue) <> '' THEN 1 END) AS issue_count,
+        SUM(actual_hours) AS total_hours,
+        SUM(headcount) AS total_headcount,
+        SUM(actual_hours * headcount) AS total_man_hours
+    FROM YDP
+    GROUP BY ship_no, manager;
+    """
+    df = fetch_dataframe(query)
+    df.columns = [
+        "호선 번호",
+        "제작업체",
+        "도면 갯수",
+        "이슈 건수",
+        "토탈 실투입 시간",
+        "작업자 수",
+        "총 공수(M/H)",
+    ]
+    return df
 
-    return fetch_all(
-        f"""
-        SELECT item_id, item_code, item_name, item_type, unit
-        FROM item
-        {where}
-        ORDER BY item_code
-        """,
-        params,
-    )
+
+df_result = get_ship_summary_df()
+print(df_result)
+
+##########################################################################
 
 
-def productions(keyword: str = "", date_from=None, date_to=None):
-    params: list[object] = []
-    where = ["1 = 1"]
+def load_drawing_status(target_hulls: list[str] | None = None) -> pd.DataFrame:
+    """DB(MFP 테이블)에서 데이터를 조회하여 호선별 집계 데이터를 생성합니다."""
 
-    if keyword:
-        where.append(
-            "(p.production_no LIKE ? OR output_lot.lot_no LIKE ? OR product.item_name LIKE ?)"
+    # 1. SQL 쿼리문 (dwg_type, vendor 제외)
+    query = """
+        SELECT 
+            ship_no,
+            status,
+            issue_type,
+            worker
+        FROM MFP
+    """
+    df = fetch_dataframe(query)
+
+    # DB가 완전히 비어있는 경우 빈 DataFrame 반환
+    if df.empty:
+        return pd.DataFrame()
+
+    # target_hulls가 지정되지 않았으면 DB에 존재하는 모든 호선 대상
+    if target_hulls is None:
+        target_hulls = sorted(
+            [s for s in df["ship_no"].dropna().unique() if str(s).strip()]
         )
-        params.extend([f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"])
 
-    if date_from:
-        where.append("p.production_date >= ?")
-        params.append(str(date_from))
+    summary_list = []
 
-    if date_to:
-        where.append("p.production_date <= ?")
-        params.append(str(date_to))
+    for hull in target_hulls:
+        df_hull = df[df["ship_no"] == hull]
 
-    return fetch_dataframe(
-        f"""
-        SELECT
-            p.production_id,
-            p.production_no,
-            p.production_date,
-            product.item_code AS product_code,
-            product.item_name AS product_name,
-            output_lot.lot_no AS output_lot_no,
-            p.qty AS production_qty,
-            p.status,
-            COUNT(pm.production_material_id) AS material_row_count
-        FROM production AS p
-        JOIN item AS product
-            ON p.item_id = product.item_id
-        JOIN lot AS output_lot
-            ON p.output_lot_id = output_lot.lot_id
-        LEFT JOIN production_material AS pm
-            ON p.production_id = pm.production_id
-        WHERE {' AND '.join(where)}
-        GROUP BY
-            p.production_id,
-            p.production_no,
-            p.production_date,
-            product.item_code,
-            product.item_name,
-            output_lot.lot_no,
-            p.qty,
-            p.status
-        ORDER BY p.production_date, p.production_no
-        """,
-        tuple(params),
-    )
+        # 도면 등록이 1건도 없는 호선 처리
+        if df_hull.empty:
+            summary_list.append(
+                {
+                    "ship_no": hull,
+                    "도면건수": 0,
+                    "진행상황": "작업 전",
+                    "완료건수": 0,
+                    "이슈건수": 0,
+                    "작업자": "-",
+                }
+            )
+        else:
+            total_count = len(df_hull)
 
+            # status가 '완료'인 항목 카운트 (공백 예외 처리)
+            completed_count = (
+                df_hull["status"].fillna("").astype(str).str.strip().eq("완료").sum()
+            )
 
-def production_materials(production_id: int):
-    return fetch_dataframe(
-        """
-        SELECT
-            p.production_no,
-            material.item_code AS material_code,
-            material.item_name AS material_name,
-            material_lot.lot_no AS material_lot_no,
-            material_lot.qty AS material_lot_qty,
-            pm.qty AS used_qty
-        FROM production_material AS pm
-        JOIN production AS p
-            ON pm.production_id = p.production_id
-        JOIN item AS material
-            ON pm.material_item_id = material.item_id
-        JOIN lot AS material_lot
-            ON pm.material_lot_id = material_lot.lot_id
-        WHERE pm.production_id = ?
-        ORDER BY material.item_code, material_lot.lot_no
-        """,
-        (production_id,),
-    )
+            # issue_type이 '없음', 공백, 'nan'이 아닌 항목 카운트
+            issue_series = df_hull["issue_type"].fillna("").astype(str).str.strip()
+            issue_count = (
+                (issue_series != "없음")
+                & (issue_series != "")
+                & (issue_series.str.lower() != "nan")
+            ).sum()
+
+            # 진행상황 판정
+            current_status = (
+                "완료"
+                if (total_count > 0 and completed_count == total_count)
+                else "진행 중"
+            )
+
+            # 작업자 목록 (중복, NaN, 빈값 제거 후 연결)
+            unique_workers = [
+                w
+                for w in df_hull["worker"].dropna().astype(str).str.strip().unique()
+                if w and w.lower() != "nan"
+            ]
+            workers = ", ".join(unique_workers) if unique_workers else "-"
+
+            summary_list.append(
+                {
+                    "ship_no": hull,
+                    "도면건수": total_count,
+                    "진행상황": current_status,
+                    "완료건수": completed_count,
+                    "이슈건수": issue_count,
+                    "작업자": workers,
+                }
+            )
+
+    return pd.DataFrame(summary_list)
 
 
-def production_detail(production_id: int):
-    return fetch_one(
-        """
-        SELECT
-            p.production_id,
-            p.production_no,
-            p.production_date,
-            product.item_code AS product_code,
-            product.item_name AS product_name,
-            output_lot.lot_no AS output_lot_no,
-            output_lot.qty AS output_lot_qty,
-            output_lot.expire_date AS output_expire_date,
-            p.qty AS production_qty,
-            p.status
-        FROM production AS p
-        JOIN item AS product
-            ON p.item_id = product.item_id
-        JOIN lot AS output_lot
-            ON p.output_lot_id = output_lot.lot_id
-        WHERE p.production_id = ?
-        """,
-        (production_id,),
-    )
+##########################################################################
+
+def load_insp_status():
+
+    query = """
+    SELECT
+        ship_no,
+        unit_no,
+        COUNT(*) AS cnt,
+        SUM(weight) AS weight_kg,
+        SUM(CASE WHEN status='완료' THEN 1 ELSE 0 END) AS completed,
+        SUM(
+            CASE
+                WHEN TRIM(COALESCE(issue,'')) NOT IN ('','없음')
+                THEN 1
+                ELSE 0
+            END
+        ) AS issues,
+        SUM(duration) AS hours,
+        SUM(workers) AS workers
+
+    FROM INSP
+    GROUP BY ship_no, unit_no
+    ORDER BY ship_no, unit_no
+    """
+
+    return fetch_dataframe(query)
 
 
-def forward_trace(material_lot_id: int):
-    return fetch_dataframe(
-        """
-        SELECT
-            material_lot.lot_no AS material_lot_no,
-            material_item.item_name AS material_name,
-            pm.qty AS used_qty,
-            p.production_no,
-            p.production_date,
-            p.qty AS production_qty,
-            output_lot.lot_no AS output_lot_no,
-            output_item.item_name AS output_item_name,
-            output_lot.qty AS output_lot_qty
-        FROM production_material AS pm
-        JOIN lot AS material_lot
-            ON pm.material_lot_id = material_lot.lot_id
-        JOIN item AS material_item
-            ON pm.material_item_id = material_item.item_id
-        JOIN production AS p
-            ON pm.production_id = p.production_id
-        JOIN lot AS output_lot
-            ON p.output_lot_id = output_lot.lot_id
-        JOIN item AS output_item
-            ON p.item_id = output_item.item_id
-        WHERE pm.material_lot_id = ?
-        ORDER BY p.production_date, p.production_no
-        """,
-        (material_lot_id,),
-    )
+##########################################################################
 
 
-def reverse_trace(output_lot_id: int):
-    return fetch_dataframe(
-        """
-        SELECT
-            output_lot.lot_no AS output_lot_no,
-            output_item.item_name AS output_item_name,
-            p.production_no,
-            p.production_date,
-            p.qty AS production_qty,
-            material_lot.lot_no AS material_lot_no,
-            material_item.item_name AS material_name,
-            pm.qty AS used_qty,
-            material_lot.qty AS material_lot_qty
-        FROM production AS p
-        JOIN lot AS output_lot
-            ON p.output_lot_id = output_lot.lot_id
-        JOIN item AS output_item
-            ON p.item_id = output_item.item_id
-        JOIN production_material AS pm
-            ON p.production_id = pm.production_id
-        JOIN lot AS material_lot
-            ON pm.material_lot_id = material_lot.lot_id
-        JOIN item AS material_item
-            ON pm.material_item_id = material_item.item_id
-        WHERE p.output_lot_id = ?
-        ORDER BY material_item.item_code, material_lot.lot_no
-        """,
-        (output_lot_id,),
-    )
+def load_ydp_status():
 
+    query = """
+    SELECT
+        ship_no,
+        block_no,
 
-def production_by_date():
-    return fetch_dataframe("""
-        SELECT production_date, SUM(qty) AS production_qty, COUNT(*) AS production_count
-        FROM production
-        GROUP BY production_date
-        ORDER BY production_date
-        """)
+        COUNT(*) AS total_cnt,
 
+        -- 완료건수 (검사, 보류 제외)
+        SUM(
+            CASE
+                WHEN TRIM(COALESCE(progress, '')) NOT IN ('검사', '보류')
+                THEN 1
+                ELSE 0
+            END
+        ) AS completed_cnt,
 
-def production_by_item():
-    return fetch_dataframe("""
-        SELECT
-            i.item_code,
-            i.item_name,
-            SUM(p.qty) AS production_qty,
-            COUNT(*) AS production_count
-        FROM production AS p
-        JOIN item AS i
-            ON p.item_id = i.item_id
-        GROUP BY i.item_id, i.item_code, i.item_name
-        ORDER BY production_qty DESC, i.item_code
-        """)
+        SUM(
+            CASE
+                WHEN TRIM(COALESCE(issue,'')) NOT IN ('','없음')
+                THEN 1
+                ELSE 0
+            END
+        ) AS issues,
 
+        ROUND(
+            SUM(COALESCE(actual_hours,0)),
+            1
+        ) AS hours,
 
-def lot_use_counts():
-    return fetch_dataframe("""
-        SELECT
-            l.lot_no,
-            i.item_name,
-            l.lot_type,
-            COUNT(pm.production_material_id) AS material_use_count
-        FROM lot AS l
-        JOIN item AS i
-            ON l.item_id = i.item_id
-        LEFT JOIN production_material AS pm
-            ON l.lot_id = pm.material_lot_id
-        GROUP BY l.lot_id, l.lot_no, i.item_name, l.lot_type
-        ORDER BY material_use_count DESC, l.lot_no
-        """)
+        SUM(
+            COALESCE(headcount,0)
+        ) AS workers
 
+    FROM YDP
 
-def next_id(table_name: str, id_column: str) -> int:
-    row = fetch_one(
-        f"SELECT COALESCE(MAX({id_column}), 0) + 1 AS next_id FROM {table_name}"
-    )
-    return int(row["next_id"])
+    GROUP BY
+        ship_no,
+        block_no
 
+    ORDER BY
+        ship_no,
+        block_no
+    """
 
-def lot_no_exists(lot_no: str) -> bool:
-    row = fetch_one("SELECT lot_id FROM lot WHERE lot_no = ?", (lot_no,))
-    return row is not None
+    return fetch_dataframe(query)
 
-
-def production_no_exists(production_no: str) -> bool:
-    row = fetch_one(
-        "SELECT production_id FROM production WHERE production_no = ?", (production_no,)
-    )
-    return row is not None
+##########################################################################

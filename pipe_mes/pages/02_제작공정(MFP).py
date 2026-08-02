@@ -1,6 +1,6 @@
 import streamlit as st
 import sqlite3
-import pandas as pd
+import pandas as pd # type: ignore
 from datetime import datetime
 import re
 
@@ -60,19 +60,19 @@ def get_next_lot_no(ship_no, dwg_type, vendor, dwg_no):
     today_str = datetime.now().strftime("%Y%m%d")
     prefix = f"{ship_no}-{dwg_type}-{vendor}-{today_str}-"
     
-    # dwg_no에서 모든 숫자만 추출
+  
     digits = re.sub(r'\D', '', str(dwg_no))
     
     if len(digits) >= 4:
-        suffix = digits[-4:]  # 끝 4자리 추출
+        suffix = digits[-4:] 
     elif len(digits) > 0:
-        suffix = digits.zfill(4)  # 4자리 미만일 경우 앞에 0 채움
+        suffix = digits.zfill(4)  
     else:
-        suffix = "0001"  # 숫자가 없는 예외의 경우 기본값
+        suffix = "0001"  
         
     return f"{prefix}{suffix}"
 
-st.markdown("---")
+
 st.title("제작 공정(MFP)")
 st.markdown("##### (Manufacturing Process)")
 st.markdown("---")
@@ -123,7 +123,7 @@ if tab_choice == "1. 제작 공정 등록":
         manager = st.text_input("관리자").strip().upper()
         
         auto_lot = st.checkbox("LOT 제작 번호 자동 생성", value=True)
-        # dwg_no가 있어야 끝 4자리를 추출할 수 있으므로 조건을 추가합니다.
+        
         if auto_lot and ship_no and dwg_type and vendor and dwg_no:
             generated_lot = get_next_lot_no(ship_no, dwg_type, vendor, dwg_no)
             lot_no = st.text_input("LOT 제작 번호", value=generated_lot, disabled=True)
