@@ -120,8 +120,8 @@ for i in range(0, len(df), cols_per_row):
 
             st.caption(
                 f"상태: {row['진행상황']} | "
-                f"이슈: {row['이슈건수']}건 | "
-                f"작업자: {row['작업자']}"
+                f"이슈: {row['이슈건수']}건"
+                # /"작업자: {row['작업자']}"
             )
 st.markdown("---")
 

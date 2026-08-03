@@ -3,7 +3,7 @@ import streamlit as st
 
 from src.db import DB_PATH, database_exists
 
-# page_confit를 제목 함수로 수정
+# page_config를 제목 함수로 수정
 def setup_page(title: str):
     st.set_page_config(page_title=f"{title}")
 # page_title을 개량한 커스텀 함수
