@@ -10,7 +10,7 @@ from src.queries import (
 
 
 # PAGE
-st.set_page_config(page_title="대시보드", layout="wide") # page_icon="🚢"
+st.set_page_config(page_title="대시보드", layout="wide")  # page_icon="🚢"
 
 
 # CSS
@@ -136,6 +136,26 @@ st.markdown(
 }
 
 
+.card-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:8px;
+    font-size:13px;
+    font-weight:600;
+    color:#475569;
+}
+
+.card-footer .issue-ok{
+    color:#64748b;
+}
+
+.card-footer .issue-bad{
+    color:#dc2626;
+    font-weight:800;
+}
+
+
 
 /* =====================================================
    Badge
@@ -236,6 +256,18 @@ st.markdown(
     color:#60a5fa;
 }
 
+.card-footer{
+    color:#cbd5e1;
+}
+
+.card-footer .issue-ok{
+    color:#94a3b8;
+}
+
+.card-footer .issue-bad{
+    color:#f87171;
+}
+
 .total-issues {
     color: #f87171;
 }
@@ -276,16 +308,54 @@ st.markdown(
 )
 
 
-# DATA
+# DATA (캐싱 + 예외 처리)
+# 원본 쿼리 함수 자체(src/queries.py)에 @st.cache_data를 붙이는 것이 가장 좋지만,
+# 이 파일만으로도 캐시 효과를 보도록 로컬 래퍼 함수로 감쌌습니다.
+# 쿼리 실패 시 앱이 죽지 않고 에러 메시지를 보여주고 빈 DataFrame으로 대체됩니다.
+
+
+@st.cache_data(ttl=300)  # 5분 캐시. 데이터 갱신 주기에 맞게 조정하세요.
+def _load_bom():
+    return bom_summary_by_ship()
+
+
+@st.cache_data(ttl=300)
+def _load_mfp():
+    return load_drawing_status()
+
+
+@st.cache_data(ttl=300)
+def _load_insp():
+    return load_insp_status()
+
+
+@st.cache_data(ttl=300)
+def _load_ydp():
+    return load_ydp_status()
+
+
+def _safe_load(loader, label):
+    try:
+        return loader()
+    except Exception as e:  # noqa: BLE001
+        st.error(f"{label} 데이터를 불러오지 못했습니다: {e}")
+        return pd.DataFrame()
+
+
 target_hulls = ["SN101", "SN201", "SN301"]
 
-df_bom = bom_summary_by_ship()
+df_bom = _safe_load(_load_bom, "BOM")
+df_mfp = _safe_load(_load_mfp, "MFP(도면)")
+df_insp = _safe_load(_load_insp, "INSP(설치)")
+df_ydp = _safe_load(_load_ydp, "YDP(YARD)")
 
-df_mfp = load_drawing_status()
 
-df_insp = load_insp_status()
-
-df_ydp = load_ydp_status()
+if st.button("🔄 새로고침"):
+    _load_bom.clear()
+    _load_mfp.clear()
+    _load_insp.clear()
+    _load_ydp.clear()
+    st.rerun()
 
 
 # FUNCTION
@@ -319,6 +389,14 @@ def state_icon(percent, issues=0):
 st.title("📌 진행호선 🚢SN101/201/301")
 st.divider()
 
+with st.expander("🔍 원본 데이터 확인 (디버그용)"):
+    st.write("MFP 원본 컬럼:", list(df_mfp.columns) if not df_mfp.empty else "데이터 없음")
+    if not df_mfp.empty and "issue_desc" in df_mfp.columns:
+        st.write("issue_desc 값별 건수:")
+        st.dataframe(df_mfp["issue_desc"].astype(str).str.strip().value_counts())
+    st.dataframe(df_mfp)
+
+
 # SHIP LOOP
 for ship in target_hulls:
 
@@ -330,35 +408,44 @@ for ship in target_hulls:
     rates = []
     total_issues = 0  # 전체 이슈 건수 변수 초기화
 
-  
     # MFP
     mfp_done = 0
     mfp_total = 0
+    mfp_issues = 0
 
     if not mfp.empty:
         mfp_done = int(mfp["완료건수"].sum())
         mfp_total = int(mfp["도면건수"].sum())
-        if "issues" in mfp.columns:
-            total_issues += int(mfp["issues"].sum())
+
+        # issue_desc 컬럼의 값으로 이슈 건수를 카운트합니다.
+        # 공란(빈 문자열/NaN)은 제외하고, 그 외 내용이 적힌 행은 모두 이슈로 카운트합니다.
+        if "issue_desc" in mfp.columns:
+            issue_desc = mfp["issue_desc"].astype(str).str.strip()
+            blank_values = {"", "nan", "none"}
+            mfp_issues = int((~issue_desc.str.lower().isin(blank_values)).sum())
+        elif "issues" in mfp.columns:
+            mfp_issues = int(mfp["issues"].sum())
+
+        total_issues += mfp_issues
 
     mfp_rate = rate(mfp_done, mfp_total)
     rates.append(mfp_rate)
 
-  
     # INSP
     insp_done = 0
     insp_total = 0
+    insp_issues = 0
 
     if not insp.empty:
         insp_done = int(insp["completed"].sum())
         insp_total = int(insp["cnt"].sum())
         if "issues" in insp.columns:
-            total_issues += int(insp["issues"].sum())
+            insp_issues = int(insp["issues"].sum())
+            total_issues += insp_issues
 
     insp_rate = rate(insp_done, insp_total)
     rates.append(insp_rate)
 
-  
     # YDP
     ydp_done = 0
     ydp_total = 0
@@ -383,7 +470,6 @@ for ship in target_hulls:
 
     total_rate = int(sum(rates) / len(rates)) if rates else 0
 
-    
     # HEADER (진행률 및 이슈 건수)
     st.markdown(
         f"""
@@ -409,15 +495,28 @@ for ship in target_hulls:
 
     cols = st.columns(4)
 
-    
+    # 카드 하단 "라벨 · 이슈 N건"을 가로로 배치하는 공통 헬퍼
+    def footer_html(label, issues):
+        cls = "issue-bad" if issues > 0 else "issue-ok"
+        mark = "⚠️ " if issues > 0 else ""
+        return (
+            f'<div class="card-footer">'
+            f'<span>{label}</span>'
+            f'<span class="{cls}">{mark}이슈 {issues}건</span>'
+            f'</div>'
+        )
+
     # BOM
     with cols[0]:
         qty = 0
         weight_ton = 0.0
+        bom_issues = 0
 
         if not bom.empty:
-            qty = int(bom.total_quantity.sum())
-            weight_ton = round(bom.total_weight.sum() / 1000, 1)
+            qty = int(bom["total_quantity"].sum())
+            weight_ton = round(bom["total_weight"].sum() / 1000, 1)
+            if "issues" in bom.columns:
+                bom_issues = int(bom["issues"].sum())
 
         st.markdown(
             f"""
@@ -425,43 +524,40 @@ for ship in target_hulls:
     <h3>📦 BOM</h3>
     <div class="value">{qty:,} EA</div>
     <div class="rate">{weight_ton:,.1f} ton</div>
-    자재 주문
+    {footer_html("자재 주문", bom_issues)}
 </div>
 """,
             unsafe_allow_html=True,
         )
 
-    
     # MFP
     with cols[1]:
         st.markdown(
             f"""
-<div class="process-card {state_class(mfp_rate)}">
+<div class="process-card {state_class(mfp_rate, mfp_issues)}">
     <h3>🔧 MFP</h3>
     <div class="value">{mfp_done}/{mfp_total}</div>
     <div class="rate">진행률 {mfp_rate}%</div>
-    제작 공정
+    {footer_html("제작 공정", mfp_issues)}
 </div>
 """,
             unsafe_allow_html=True,
         )
 
-    
     # INSP
     with cols[2]:
         st.markdown(
             f"""
-<div class="process-card {state_class(insp_rate)}">
+<div class="process-card {state_class(insp_rate, insp_issues)}">
     <h3>🔩 INSP</h3>
     <div class="value">{insp_done}/{insp_total}</div>
     <div class="rate">진행률 {insp_rate}%</div>
-    설치 공정
+    {footer_html("설치 공정", insp_issues)}
 </div>
 """,
             unsafe_allow_html=True,
         )
 
-    
     # YDP
     with cols[3]:
         st.markdown(
@@ -470,13 +566,12 @@ for ship in target_hulls:
     <h3>🏗 YDP</h3>
     <div class="value">{ydp_done}/{ydp_total}</div>
     <div class="rate">진행률 {ydp_rate}%</div>
-    YARD 공정
+    {footer_html("YARD 공정", ydp_issues)}
 </div>
 """,
             unsafe_allow_html=True,
         )
 
-    
     # BLOCK
     st.markdown("### 🧩 BLOCK 현황")
 
