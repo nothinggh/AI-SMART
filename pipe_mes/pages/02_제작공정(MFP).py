@@ -4,7 +4,9 @@ import pandas as pd # type: ignore
 from datetime import datetime
 import re
 
-st.set_page_config(layout="wide")
+
+# PAGE
+st.set_page_config(page_title="제작 공정(MFP)", layout="wide")
 
 DB_PATH = "/home/smart/work/pipe_mes/sql/pipe_mes.db"
 

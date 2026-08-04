@@ -10,7 +10,7 @@ from src.queries import (
 
 
 # PAGE
-st.set_page_config(page_title="호선별 현황", page_icon="🚢", layout="wide")
+st.set_page_config(page_title="대시보드", layout="wide") # page_icon="🚢"
 
 
 # CSS

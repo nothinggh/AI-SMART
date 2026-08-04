@@ -3,7 +3,9 @@ import pandas as pd # type: ignore
 import streamlit as st
 from datetime import datetime, time
 
-st.set_page_config(layout="wide")
+
+# PAGE
+st.set_page_config(page_title="YARD 공정(YDP)", layout="wide")
 
 DB_PATH = "/home/smart/work/pipe_mes/sql/pipe_mes.db"
 
@@ -38,13 +40,13 @@ def init_db():
 init_db()
 
 
-st.title("🏗️ Yard 공정(YDP)")
+st.title("🏗️ YARD 공정(YDP)")
 st.markdown("##### (Yard Delivery Process)")
 st.markdown("---")
 
-menu = st.radio("", ["1. Yard 공정 등록", "2. Yard 공정 관리"], horizontal=True)
+menu = st.radio("", ["1. YARD 공정 등록", "2. YARD 공정 관리"], horizontal=True)
 
-if menu == "1. Yard 공정 등록":
+if menu == "1. YARD 공정 등록":
    
     col1, col2, col3 = st.columns(3)
     
@@ -58,11 +60,11 @@ if menu == "1. Yard 공정 등록":
         inspection = st.selectbox("검사", ["", "완료", "용접,수압,기밀"])
         
     with col2:
-        progress = st.selectbox("yard 진행 상황", ["", "검사", "보류", "소조립", "중조립", "대조립", "DOCK 탑재", "시운전", "인도"])
-        start_date = st.date_input("yard 시작 날짜")
-        start_time = st.time_input("yard 시작 시간")
-        end_date = st.date_input("yard 완료 날짜")
-        end_time = st.time_input("yard 완료 시간")
+        progress = st.selectbox("Yard 진행 상황", ["", "검사", "보류", "소조립", "중조립", "대조립", "DOCK 탑재", "시운전", "인도"])
+        start_date = st.date_input("Yard 시작 날짜")
+        start_time = st.time_input("Yard 시작 시간")
+        end_date = st.date_input("Yard 완료 날짜")
+        end_time = st.time_input("Yard 완료 시간")
         
     with col3:
         start_dt = datetime.combine(start_date, start_time)
@@ -73,9 +75,9 @@ if menu == "1. Yard 공정 등록":
         if actual_hours < 0:
             actual_hours = 0.0
             
-        st.number_input("yard 실 투입 시간(시간)", value=actual_hours, disabled=True)
-        headcount = st.number_input("yard 투입 인원", min_value=0, step=1)
-        manager = st.text_input("yard 관리자").upper()
+        st.number_input("Yard 실 투입 시간(시간)", value=actual_hours, disabled=True)
+        headcount = st.number_input("Yard 투입 인원", min_value=0, step=1)
+        manager = st.text_input("Yard 관리자").upper()
         issue = st.text_area("이슈").upper()
 
     lot_no = f"{ship_no}-YARD-{block_no}".upper() if ship_no else ""
@@ -102,7 +104,7 @@ if menu == "1. Yard 공정 등록":
             conn.close()
             st.success("등록되었습니다.")
 
-elif menu == "2. Yard 공정 관리":
+elif menu == "2. YARD 공정 관리":
     
     conn = get_connection()
     df = pd.read_sql_query("SELECT * FROM YDP", conn)

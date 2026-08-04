@@ -3,11 +3,10 @@ import pandas as pd  # type: ignore
 import streamlit as st
 from datetime import datetime
 
-st.set_page_config(layout="wide")
-
+# PAGE
+st.set_page_config(page_title="자재 주문(BOM)", layout="wide")
 
 DB_PATH = "/home/smart/work/pipe_mes/sql/pipe_mes.db"
-
 
 def init_db():
 

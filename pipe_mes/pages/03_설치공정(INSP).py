@@ -3,7 +3,9 @@ import sqlite3
 import pandas as pd # type: ignore
 import streamlit as st
 
-st.set_page_config(layout="wide")
+
+# PAGE
+st.set_page_config(page_title="설치 공정(INSP)", layout="wide")
 
 DB_PATH = "/home/smart/work/pipe_mes/sql/pipe_mes.db"
 

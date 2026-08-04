@@ -111,9 +111,9 @@ def render_tab(direction: str) -> None:
     result_column.metric("\uac80\uc0c9\ub41c \ud589\uc218", f"{len(filtered_data):,}\uac74")
     st.dataframe(filtered_data, use_container_width=True, hide_index=True)
 
-
-st.set_page_config(page_title="PIPE MES \ud1b5\ud569 \uc870\ud68c", layout="wide")
-st.title("🔍 LOT \ud1b5\ud569 \uc870\ud68c")
+# PAGE
+st.set_page_config(page_title="LOT 조회", layout="wide")
+st.title("🔍 LOT 조회")
 # st.caption(f"DB \uacbd\ub85c: {DB_PATH}")
 # st.caption("JOIN: MFP.dwg_no = INSP.dwg_no, INSP.ship_no + unit_no = YDP.ship_no + unit_no")
 

@@ -6,10 +6,8 @@ from src.ui import (
     show_database_status,
 )
 
-# PAGE SETUP
-st.set_page_config(layout="wide")
-setup_page("소개")
-
+# PAGE
+st.set_page_config(page_title="PMES", layout="wide")
 
 # TITLE
 st.title("🚢 배관 관리 시스템(PMES)")

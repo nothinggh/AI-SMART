@@ -85,10 +85,10 @@ def filter_data(data: pd.DataFrame, keyword: str) -> pd.DataFrame:
     )
     return data.loc[matches.any(axis=1)]
 
-
-st.set_page_config(page_title="PIPE MES \ud14c\uc774\ube14 \uc870\ud68c", layout="wide")
-st.title("🔍 전체 \ud14c\uc774\ube14 \uc870\ud68c")
-# st.caption(f"DB \uacbd\ub85c: {DB_PATH}")
+# PAGE
+st.set_page_config(page_title="전체 조회", layout="wide")
+st.title("🔍 전체 조회")
+# st.caption(f"DB 경로: {DB_PATH}")
 
 try:
     db_mtime = DB_PATH.stat().st_mtime
