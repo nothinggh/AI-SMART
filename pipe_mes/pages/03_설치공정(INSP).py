@@ -1,6 +1,6 @@
 from datetime import datetime
 import sqlite3
-import pandas as pd # type: ignore
+import pandas as pd  # type: ignore
 import streamlit as st
 
 
@@ -60,7 +60,7 @@ tab = st.radio(
 )
 
 if tab == "1. 설치 공정 등록":
-   
+
     with st.form("register_form"):
         col1, col2, col3 = st.columns(3)
 
@@ -146,13 +146,15 @@ if tab == "1. 설치 공정 등록":
             st.success("등록 완료")
 
 elif tab == "2. 설치 공정 관리":
-    
 
     conn = sqlite3.connect(DB_PATH)
     df = pd.read_sql_query("SELECT * FROM INSP", conn)
     conn.close()
 
+    total_rows = len(df)  # DB 전체 행 수
+
     if not df.empty:
+        # --- 검색 필터링 영역 ---
         col_search1, col_search2 = st.columns([1, 3])
         with col_search1:
             search_col = st.selectbox("검색 항목", ["전체"] + list(df.columns))
@@ -165,14 +167,34 @@ elif tab == "2. 설치 공정 관리":
                     lambda x: x.str.contains(search_term, case=False).any(),
                     axis=1,
                 )
-                df = df[mask]
+                filtered_df = df[mask]
             else:
-                df = df[
+                filtered_df = df[
                     df[search_col]
                     .astype(str)
                     .str.contains(search_term, case=False)
                 ]
+        else:
+            filtered_df = df.copy()
 
+        # --- 요약 현황판 계산 (전체 행 수, 검색 행 수, 수량/지표) ---
+        filtered_rows = len(filtered_df)
+        total_weight = filtered_df["weight"].sum() if not filtered_df.empty else 0.0
+        total_workers = filtered_df["workers"].sum() if not filtered_df.empty else 0
+        total_duration = filtered_df["duration"].sum() if not filtered_df.empty else 0.0
+
+        # --- 지표 카드 (st.metric) 출력 ---
+        st.markdown("### 설치 공정 현황")
+        m1, m2, m3, m4, m5 = st.columns(5)
+        m1.metric("전체 건수", f"{total_rows:,} 건")
+        m2.metric("검색된 건수", f"{filtered_rows:,} 건")
+        m3.metric("총 중량", f"{total_weight:,.1f} kg")
+        m4.metric("총 투입 인원", f"{total_workers:,} 명")
+        m5.metric("총 투입 시간", f"{total_duration:,.1f} hrs")
+
+        st.markdown("---")
+
+        # --- 전체 선택 처리 ---
         col_btn1, col_btn2, _ = st.columns([1, 1, 8])
         with col_btn1:
             select_all = st.checkbox("전체 선택")
@@ -182,11 +204,12 @@ elif tab == "2. 설치 공정 관리":
 
         if select_all != st.session_state.select_all_state:
             st.session_state.select_all_state = select_all
-            df["선택"] = select_all
+            filtered_df["선택"] = select_all
         else:
-            df["선택"] = select_all
+            filtered_df["선택"] = select_all
 
-        df = df[
+        # 열 순서 정렬
+        filtered_df = filtered_df[
             [
                 "선택",
                 "id",
@@ -220,10 +243,10 @@ elif tab == "2. 설치 공정 관리":
             "UNIT-J",
         ]
         status_options = ["설치 중", "보류", "파손", "완료", "출고"]
-        vendor_options = [ "AA", "BB", "CC"]
+        vendor_options = ["AA", "BB", "CC"]
 
         edited_df = st.data_editor(
-            df,
+            filtered_df,
             column_config={
                 "선택": st.column_config.CheckboxColumn(
                     "선택", default=False

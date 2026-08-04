@@ -1,6 +1,6 @@
 import streamlit as st
 import sqlite3
-import pandas as pd # type: ignore
+import pandas as pd  # type: ignore
 from datetime import datetime
 import re
 
@@ -62,7 +62,6 @@ def get_next_lot_no(ship_no, dwg_type, vendor, dwg_no):
     today_str = datetime.now().strftime("%Y%m%d")
     prefix = f"{ship_no}-{dwg_type}-{vendor}-{today_str}-"
     
-  
     digits = re.sub(r'\D', '', str(dwg_no))
     
     if len(digits) >= 4:
@@ -157,6 +156,9 @@ elif tab_choice == "2. 제작 공정 관리":
     df = pd.read_sql_query("SELECT * FROM MFP", conn)
     conn.close()
 
+    total_rows = len(df)  # DB 전체 행 수
+
+    # --- 검색 필터링 영역 ---
     col_s1, col_s2 = st.columns([1, 3])
     with col_s1:
         search_col = st.selectbox("검색 컬럼", ["전체"] + list(df.columns))
@@ -172,6 +174,21 @@ elif tab_choice == "2. 제작 공정 관리":
     else:
         filtered_df = df.copy()
 
+    # --- 현황 요약 (행 수 및 주요 통계 지표) ---
+    filtered_rows = len(filtered_df)  # 검색된 행 수
+    total_weight_sum = filtered_df["weight"].sum() if not filtered_df.empty else 0.0  # 총 중량
+    total_duration_sum = filtered_df["duration"].sum() if not filtered_df.empty else 0.0  # 총 투입 시간
+
+    st.markdown("### 제작 공정 현황")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric(label="전체 공정 건수", value=f"{total_rows:,} 건")
+    m2.metric(label="검색된 건수", value=f"{filtered_rows:,} 건")
+    m3.metric(label="검색 항목 총 중량", value=f"{total_weight_sum:,.1f} kg")
+    m4.metric(label="검색 항목 총 투입시간", value=f"{total_duration_sum:,.1f} hrs")
+
+    st.markdown("---")
+
+    # --- 데이터 편집 테이블 및 버튼 ---
     if not filtered_df.empty:
         select_all = st.checkbox("전체 선택 / 해제")
         filtered_df.insert(0, "선택", select_all)
