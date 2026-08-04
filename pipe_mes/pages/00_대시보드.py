@@ -8,7 +8,6 @@ from src.queries import (
     load_ydp_status,
 )
 
-
 # PAGE
 st.set_page_config(page_title="대시보드", layout="wide")  # page_icon="🚢"
 
@@ -389,12 +388,14 @@ def state_icon(percent, issues=0):
 st.title("📌 진행호선 🚢SN101/201/301")
 st.divider()
 
-with st.expander("🔍 원본 데이터 확인 (디버그용)"):
-    st.write("MFP 원본 컬럼:", list(df_mfp.columns) if not df_mfp.empty else "데이터 없음")
-    if not df_mfp.empty and "issue_desc" in df_mfp.columns:
-        st.write("issue_desc 값별 건수:")
-        st.dataframe(df_mfp["issue_desc"].astype(str).str.strip().value_counts())
-    st.dataframe(df_mfp)
+# with st.expander("🔍 원본 데이터 확인 (디버그용)"):
+#     st.write(
+#         "MFP 원본 컬럼:", list(df_mfp.columns) if not df_mfp.empty else "데이터 없음"
+#     )
+#     if not df_mfp.empty and "issue_desc" in df_mfp.columns:
+#         st.write("issue_desc 값별 건수:")
+#         st.dataframe(df_mfp["issue_desc"].astype(str).str.strip().value_counts())
+#     st.dataframe(df_mfp)
 
 
 # SHIP LOOP
@@ -417,16 +418,11 @@ for ship in target_hulls:
         mfp_done = int(mfp["완료건수"].sum())
         mfp_total = int(mfp["도면건수"].sum())
 
-        # issue_desc 컬럼의 값으로 이슈 건수를 카운트합니다.
-        # 공란(빈 문자열/NaN)은 제외하고, 그 외 내용이 적힌 행은 모두 이슈로 카운트합니다.
-        if "issue_desc" in mfp.columns:
-            issue_desc = mfp["issue_desc"].astype(str).str.strip()
-            blank_values = {"", "nan", "none"}
-            mfp_issues = int((~issue_desc.str.lower().isin(blank_values)).sum())
-        elif "issues" in mfp.columns:
-            mfp_issues = int(mfp["issues"].sum())
+    # load_drawing_status()가 이미 호선별로 이슈건수를 집계해서 내려줍니다.
+    if "이슈건수" in mfp.columns:
+        mfp_issues = int(mfp["이슈건수"].sum())
 
-        total_issues += mfp_issues
+    total_issues += mfp_issues
 
     mfp_rate = rate(mfp_done, mfp_total)
     rates.append(mfp_rate)
@@ -501,9 +497,9 @@ for ship in target_hulls:
         mark = "⚠️ " if issues > 0 else ""
         return (
             f'<div class="card-footer">'
-            f'<span>{label}</span>'
+            f"<span>{label}</span>"
             f'<span class="{cls}">{mark}이슈 {issues}건</span>'
-            f'</div>'
+            f"</div>"
         )
 
     # BOM
