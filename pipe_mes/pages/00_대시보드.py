@@ -1,263 +1,522 @@
 import pandas as pd  # type: ignore
 import streamlit as st
-import plotly.express as px  # type: ignore
-
-st.set_page_config(page_title="주요 지표", layout="wide")
 
 from src.queries import (
-    table_counts,
     bom_summary_by_ship,
     load_drawing_status,
     load_insp_status,
     load_ydp_status,
 )
 
-st.title("📌 주요 지표")
-st.markdown("---")
-st.subheader("📋 DB테이블명(품목수)")
-df_counts = table_counts()
-counts_dict = dict(zip(df_counts["table_name"], df_counts["row_count"]))
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.metric(label="BOM", value=f"{counts_dict.get('BOM', 0):,} 건")
-with col2:
-    st.metric(label="MFP", value=f"{counts_dict.get('MFP', 0):,} 건")
-with col3:
-    st.metric(label="INSP", value=f"{counts_dict.get('INSP', 0):,} 건")
-with col4:
-    st.metric(label="YDP", value=f"{counts_dict.get('YDP', 0):,} 건")
 
-##########################################################################
+# PAGE
+st.set_page_config(page_title="호선별 현황", page_icon="🚢", layout="wide")
 
-st.markdown("---")
-df_summary = bom_summary_by_ship()
-if isinstance(df_summary, pd.DataFrame) and not df_summary.empty:
-    st.subheader("📦 자재 주문(BOM) 현황")
-    df_display = df_summary[
-        ["ship_no", "total_quantity", "total_weight", "total_price"]
-    ]
 
-    st.dataframe(
-        df_display,
-        column_config={
-            "ship_no": st.column_config.TextColumn("호선 번호"),
-            "total_quantity": st.column_config.NumberColumn("총수량(EA)", format="%,d"),
-            "total_weight": st.column_config.NumberColumn("총중량(kg)", format="%,.2f"),
-            "total_price": st.column_config.NumberColumn("총금액(원)", format="%,d"),
-        },
-        hide_index=True,
-        use_container_width=True,
-    )
+# CSS
+st.markdown(
+    """
+<style>
 
-    st.markdown("- 차트")
+/* =====================================================
+   기본
+===================================================== */
 
-    c1, c2, c3 = st.columns(3)
+.title{
+    font-size:34px;
+    font-weight:800;
+    color:#0f172a;
+}
 
-    with c1:
-        st.caption("호선별 총수량(EA)")
-        st.bar_chart(
-            data=df_summary,
-            x="ship_no",
-            y="total_quantity",
-            color="#2b5c8f",
-            use_container_width=True,
-        )
 
-    with c2:
-        st.caption("호선별 총중량(kg)")
-        st.bar_chart(
-            data=df_summary,
-            x="ship_no",
-            y="total_weight",
-            color="#2e7d32",
-            use_container_width=True,
-        )
+/* =====================================================
+   Ship Card
+===================================================== */
 
-    with c3:
-        st.caption("호선별 총금액(원)")
-        st.bar_chart(
-            data=df_summary,
-            x="ship_no",
-            y="total_price",
-            color="#c62828",
-            use_container_width=True,
-        )
+.ship-card{
+    background:#ffffff;
+    color:#0f172a;
+    border:1px solid #cbd5e1;
+    border-radius:18px;
+    padding:20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
 
-else:
-    st.info("조회된 호선 집계 데이터가 없습니다.")
+.total-header-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 15px;
+    text-align: center;
+}
 
-st.markdown("---")
+.total-item {
+    flex: 1;
+}
 
-##########################################################################
+/* =====================================================
+   전체 진행률 & 이슈
+===================================================== */
 
-st.subheader("📐 제작 공정(MFP) 현황")
+.total-progress{
+    font-size:48px;
+    font-weight:900;
+    color:#2563eb;
+}
 
-# 데이터 조회
-df = load_drawing_status()
+.total-issues{
+    font-size:48px;
+    font-weight:900;
+    color:#dc2626;
+}
 
-if df.empty:
-    st.info("조회된 데이터가 없습니다.")
-    st.stop()
+.total-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: #64748b;
+    margin-top: 4px;
+}
 
-# 호선별 Metric 표시
-cols_per_row = 4
 
-for i in range(0, len(df), cols_per_row):
-    cols = st.columns(cols_per_row)
+/* =====================================================
+   Process Card
+===================================================== */
 
-    for col, (_, row) in zip(cols, df.iloc[i : i + cols_per_row].iterrows()):
+.process-card{
+    color:#0f172a;
+    border-radius:15px;
+    padding:15px;
+    border:1px solid #cbd5e1;
+    text-align:center;
+}
 
-        progress = (
-            round(row["완료건수"] / row["도면건수"] * 100) if row["도면건수"] > 0 else 0
-        )
 
-        with col:
-            st.metric(
-                label=f"🚢 {row['ship_no']}",
-                value=f"{progress}%",
-                delta=f"완료 {row['완료건수']} / {row['도면건수']}",
-            )
+/* 완료 */
 
-            st.caption(
-                f"상태: {row['진행상황']} | "
-                f"이슈: {row['이슈건수']}건"
-                # /"작업자: {row['작업자']}"
-            )
-st.markdown("---")
+.complete{
+    background:#dcfce7;
+    border:2px solid #16a34a;
+}
 
-##########################################################################
 
-st.subheader("🔩 설치 공정(INSP) 현황")
+/* 진행 */
 
-df = load_insp_status()
+.running{
+    background:#dbeafe;
+    border:2px solid #2563eb;
+}
 
+
+/* 이슈 */
+
+.issue{
+    background:#fee2e2;
+    border:2px solid #dc2626;
+}
+
+
+/* 대기 */
+
+.wait{
+    background:#f1f5f9;
+    border:2px solid #94a3b8;
+}
+
+
+.value{
+    font-size:28px;
+    font-weight:900;
+}
+
+
+.rate{
+    font-size:22px;
+    font-weight:900;
+    color:#2563eb;
+}
+
+
+
+/* =====================================================
+   Badge
+===================================================== */
+
+.badge{
+    display:inline-block;
+    padding:7px 12px;
+    margin:4px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:700;
+}
+
+
+.badge-green{
+    background:#dcfce7;
+    color:#166534;
+}
+
+
+.badge-blue{
+    background:#dbeafe;
+    color:#1e40af;
+}
+
+
+.badge-red{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+
+
+/* =====================================================
+   DARK MODE
+===================================================== */
+
+
+@media (prefers-color-scheme: dark) {
+
+
+.title{
+    color:#f8fafc;
+}
+
+
+.ship-card{
+    background:#1e293b;
+    color:#f8fafc;
+    border:1px solid #475569;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+
+
+.process-card{
+    color:#f8fafc;
+    border-color:#475569;
+}
+
+
+/* 완료 */
+
+.complete{
+    background:#064e3b;
+    border-color:#22c55e;
+}
+
+
+
+/* 진행 */
+
+.running{
+    background:#1e3a8a;
+    border-color:#3b82f6;
+}
+
+
+
+/* 이슈 */
+
+.issue{
+    background:#7f1d1d;
+    border-color:#ef4444;
+}
+
+
+
+/* 대기 */
+
+.wait{
+    background:#334155;
+    border-color:#64748b;
+}
+
+
+.rate{
+    color:#60a5fa;
+}
+
+.total-issues {
+    color: #f87171;
+}
+
+.total-label {
+    color: #94a3b8;
+}
+
+
+/* badge */
+
+
+.badge-green{
+    background:#14532d;
+    color:#bbf7d0;
+}
+
+
+
+.badge-blue{
+    background:#1e3a8a;
+    color:#bfdbfe;
+}
+
+
+
+.badge-red{
+    background:#7f1d1d;
+    color:#fecaca;
+}
+
+
+}
+
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+
+# DATA
 target_hulls = ["SN101", "SN201", "SN301"]
 
-cols = st.columns(len(target_hulls))
+df_bom = bom_summary_by_ship()
+
+df_mfp = load_drawing_status()
+
+df_insp = load_insp_status()
+
+df_ydp = load_ydp_status()
 
 
-for col, ship_no in zip(cols, target_hulls):
-
-    with col:
-
-        st.markdown(f"🚢 {ship_no}")
-
-        ship_df = df[df["ship_no"] == ship_no]
-
-        # 데이터 없는 호선
-        if ship_df.empty:
-
-            st.metric(label="상태", value="작업 전", delta="등록 없음")
-
-            continue
-
-        # 호선 전체 집계
-        total_cnt = ship_df["cnt"].sum()
-        complete_cnt = ship_df["completed"].sum()
-        total_issue = ship_df["issues"].sum()
-
-        progress = int(complete_cnt / total_cnt * 100)
-
-        status = "완료" if progress == 100 else "진행중"
-
-        # 진행률 표시
-        st.metric(label="진행률", value=f"{progress}%", delta=status)
-
-        # UNIT 수량
-        unit_count = (
-            ship_df["unit_no"]
-            .dropna()
-            .astype(str)
-            .str.strip()
-            .replace("", None)
-            .nunique()
-        )
+# FUNCTION
+def rate(done, total):
+    if total == 0:
+        return 0
+    return int(done / total * 100)
 
 
-st.caption(f"""
-UNIT : {unit_count}개 |
-배관 : {int(complete_cnt)}/{int(total_cnt)} |
-이슈 : {int(total_issue)} 건
-""")
-st.markdown("---")
-
-##########################################################################
-
-st.subheader("🏗️ YDP 공정(YDP) 현황")
-
-df = load_ydp_status()
-
-target_hulls = ["SN101", "SN201", "SN301"]
+def state_class(percent, issues=0):
+    if issues > 0:
+        return "issue"
+    if percent >= 100:
+        return "complete"
+    if percent > 0:
+        return "running"
+    return "wait"
 
 
-for ship_no in target_hulls:
-
-    st.markdown(f"### 🚢 {ship_no}")
-
-    ship_df = df[df["ship_no"] == ship_no]
-
-
-    if ship_df.empty:
-
-        st.markdown("⏳ 작업 전")
-        st.divider()
-
-        continue
+def state_icon(percent, issues=0):
+    if issues > 0:
+        return "🔴"
+    if percent >= 100:
+        return "🟢"
+    if percent > 0:
+        return "🔵"
+    return "⚪"
 
 
-    # 전체 수량 / 완료 / 이슈
-    total_cnt = ship_df["total_cnt"].sum()
-    completed_cnt = ship_df["completed_cnt"].sum()
-    total_issue = ship_df["issues"].sum()
+# TITLE
+st.title("📌 진행호선 🚢SN101/201/301")
+st.divider()
 
-    # BLOCK 중복 제거 후 수량
-    total_block = (
-        ship_df["block_no"]
-        .dropna()
-        .astype(str)
-        .str.strip()
-        .nunique()
-    )
+# SHIP LOOP
+for ship in target_hulls:
 
-    # 전체 진행률
-    total_progress = round(
-        (completed_cnt / total_cnt) * 100
-        if total_cnt > 0 else 0
-    )
+    bom = df_bom[df_bom.ship_no == ship] if not df_bom.empty else pd.DataFrame()
+    mfp = df_mfp[df_mfp.ship_no == ship] if not df_mfp.empty else pd.DataFrame()
+    insp = df_insp[df_insp.ship_no == ship] if not df_insp.empty else pd.DataFrame()
+    ydp = df_ydp[df_ydp.ship_no == ship] if not df_ydp.empty else pd.DataFrame()
 
+    rates = []
+    total_issues = 0  # 전체 이슈 건수 변수 초기화
 
-    # BLOCK별 문자열 생성
-    block_text = []
+  
+    # MFP
+    mfp_done = 0
+    mfp_total = 0
 
-    for _, row in ship_df.iterrows():
+    if not mfp.empty:
+        mfp_done = int(mfp["완료건수"].sum())
+        mfp_total = int(mfp["도면건수"].sum())
+        if "issues" in mfp.columns:
+            total_issues += int(mfp["issues"].sum())
 
-        progress = round(
-            (row["completed_cnt"] / row["total_cnt"]) * 100
-            if row["total_cnt"] > 0
-            else 0
-        )
+    mfp_rate = rate(mfp_done, mfp_total)
+    rates.append(mfp_rate)
 
-        block_text.append(
-            f"🧩 {row['block_no']} {progress}% (이슈 {int(row['issues'])})"
-        )
+  
+    # INSP
+    insp_done = 0
+    insp_total = 0
 
+    if not insp.empty:
+        insp_done = int(insp["completed"].sum())
+        insp_total = int(insp["cnt"].sum())
+        if "issues" in insp.columns:
+            total_issues += int(insp["issues"].sum())
 
+    insp_rate = rate(insp_done, insp_total)
+    rates.append(insp_rate)
+
+  
+    # YDP
+    ydp_done = 0
+    ydp_total = 0
+    ydp_issues = 0
+
+    if not ydp.empty:
+        ydp_total = int(ydp["total_cnt"].sum())
+
+        if "issues" in ydp.columns:
+            ydp_issues = int(ydp["issues"].sum())
+            total_issues += ydp_issues
+
+        if "completed_cnt" in ydp.columns:
+            ydp_done = int(ydp["completed_cnt"].sum())
+        elif "completed" in ydp.columns:
+            ydp_done = int(ydp["completed"].sum())
+        else:
+            ydp_done = ydp_total - ydp_issues
+
+    ydp_rate = rate(ydp_done, ydp_total)
+    rates.append(ydp_rate)
+
+    total_rate = int(sum(rates) / len(rates)) if rates else 0
+
+    
+    # HEADER (진행률 및 이슈 건수)
     st.markdown(
         f"""
-<div style="font-size:22px; font-weight:bold;">
-    총 진행률 {total_progress}% 
-    | 총 이슈 {int(total_issue)}건
-    | 총 BLOCK {total_block}개
-</div>
-
-<div style="font-size:14px; margin-top:8px;">
-    {" | ".join(block_text)}
+<div class="ship-card">
+    <h2>🚢 {ship}</h2>
+    <div class="total-header-container">
+        <div class="total-item">
+            <div class="total-progress">{total_rate}%</div>
+            <div class="total-label">전체 진행률</div>
+        </div>
+        <div style="border-left: 1px solid #cbd5e1; height: 50px;"></div>
+        <div class="total-item">
+            <div class="total-issues">{total_issues:,}</div>
+            <div class="total-label">전체 이슈 건수</div>
+        </div>
+    </div>
 </div>
 """,
         unsafe_allow_html=True,
     )
 
+    st.write("")
+
+    cols = st.columns(4)
+
+    
+    # BOM
+    with cols[0]:
+        qty = 0
+        weight_ton = 0.0
+
+        if not bom.empty:
+            qty = int(bom.total_quantity.sum())
+            weight_ton = round(bom.total_weight.sum() / 1000, 1)
+
+        st.markdown(
+            f"""
+<div class="process-card complete">
+    <h3>📦 BOM</h3>
+    <div class="value">{qty:,} EA</div>
+    <div class="rate">{weight_ton:,.1f} ton</div>
+    자재 주문
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    
+    # MFP
+    with cols[1]:
+        st.markdown(
+            f"""
+<div class="process-card {state_class(mfp_rate)}">
+    <h3>🔧 MFP</h3>
+    <div class="value">{mfp_done}/{mfp_total}</div>
+    <div class="rate">진행률 {mfp_rate}%</div>
+    제작 공정
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    
+    # INSP
+    with cols[2]:
+        st.markdown(
+            f"""
+<div class="process-card {state_class(insp_rate)}">
+    <h3>🔩 INSP</h3>
+    <div class="value">{insp_done}/{insp_total}</div>
+    <div class="rate">진행률 {insp_rate}%</div>
+    설치 공정
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    
+    # YDP
+    with cols[3]:
+        st.markdown(
+            f"""
+<div class="process-card {state_class(ydp_rate, ydp_issues)}">
+    <h3>🏗 YDP</h3>
+    <div class="value">{ydp_done}/{ydp_total}</div>
+    <div class="rate">진행률 {ydp_rate}%</div>
+    YARD 공정
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    
+    # BLOCK
+    st.markdown("### 🧩 BLOCK 현황")
+
+    if not ydp.empty:
+        html = ""
+
+        for _, row in ydp.iterrows():
+            total = row["total_cnt"]
+
+            if "completed_cnt" in ydp.columns:
+                done = row["completed_cnt"]
+            elif "completed" in ydp.columns:
+                done = row["completed"]
+            else:
+                done = total - row["issues"]
+
+            p = rate(done, total)
+            issue = int(row.get("issues", 0))
+
+            if issue > 0:
+                badge = "badge-red"
+            elif p >= 100:
+                badge = "badge-green"
+            else:
+                badge = "badge-blue"
+
+            html += f"""
+<span class="badge {badge}">
+{state_icon(p, issue)}
+{row['block_no']}
+{p}%
+"""
+
+            if issue > 0:
+                html += f" ⚠️{issue}"
+
+            html += """
+</span>
+"""
+
+        st.markdown(html, unsafe_allow_html=True)
+
     st.divider()
-
-###########################################################################
-

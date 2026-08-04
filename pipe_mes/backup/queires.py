@@ -139,7 +139,7 @@ print(df_result)
 def load_drawing_status(target_hulls: list[str] | None = None) -> pd.DataFrame:
     """DB(MFP 테이블)에서 데이터를 조회하여 호선별 집계 데이터를 생성합니다."""
 
-    # SQL 쿼리문
+    # 1. SQL 쿼리문 (dwg_type, vendor 제외)
     query = """
         SELECT 
             ship_no,
@@ -150,7 +150,7 @@ def load_drawing_status(target_hulls: list[str] | None = None) -> pd.DataFrame:
     """
     df = fetch_dataframe(query)
 
-    # DB가 없을 경우 DataFrame 반환
+    # DB가 완전히 비어있는 경우 빈 DataFrame 반환
     if df.empty:
         return pd.DataFrame()
 
@@ -200,7 +200,7 @@ def load_drawing_status(target_hulls: list[str] | None = None) -> pd.DataFrame:
                 else "진행 중"
             )
 
-            # 작업자 목록 (중복, 빈값 제거 후 연결)
+            # 작업자 목록 (중복, NaN, 빈값 제거 후 연결)
             unique_workers = [
                 w
                 for w in df_hull["worker"].dropna().astype(str).str.strip().unique()

@@ -1,5 +1,5 @@
 import sqlite3
-import pandas as pd # type: ignore
+import pandas as pd  # type: ignore
 import streamlit as st
 from datetime import datetime
 
@@ -231,7 +231,6 @@ SIZES = ["8A", "10A", "15A", "20A", "25A", "32A", "40A", "50A", "65A", "80A", "1
 
 
 ITEMS = ["PIPE(6M)", "FLANGE", "COUPLING", "BOLT", "NUT", "GASKET", "ELBOW", "TEE"]
-
 
 
 st.title("📦 자재 주문(BOM)")

@@ -50,23 +50,23 @@ if menu == "1. Yard 공정 등록":
     
     with col1:
         ship_no = st.text_input("호선 번호").upper()
-        block_options = [f"B10{i}" if i < 10 else f"B1{i}" for i in range(1, 11)]
+        block_options =[""] + [f"B10{i}" if i < 10 else f"B1{i}" for i in range(1, 11)]
         block_no = st.selectbox("block no", block_options)
-        unit_options = [f"UNIT-{chr(i)}" for i in range(65, 75)]
+        unit_options = [""] + [f"UNIT-{chr(i)}" for i in range(65, 75)]
         unit_no = st.selectbox("unit no", unit_options)
-        area = st.selectbox("area", ["E/R(엔진룸)", "HULL(선장)", "C/R(선실)"])
-        inspection = st.selectbox("검사", ["완료", "용접,수압,기밀"])
+        area = st.selectbox("area", ["", "E/R(엔진룸)", "HULL(선장)", "C/R(선실)"])
+        inspection = st.selectbox("검사", ["", "완료", "용접,수압,기밀"])
         
     with col2:
-        progress = st.selectbox("yard 진행 상황", ["검사", "보류", "소조립", "중조립", "대조립", "DOCK 탑재", "시운전", "인도"])
+        progress = st.selectbox("yard 진행 상황", ["", "검사", "보류", "소조립", "중조립", "대조립", "DOCK 탑재", "시운전", "인도"])
         start_date = st.date_input("yard 시작 날짜")
-        start_time_val = st.time_input("yard 시작 시간", value=time(9, 0))
+        start_time = st.time_input("yard 시작 시간")
         end_date = st.date_input("yard 완료 날짜")
-        end_time_val = st.time_input("yard 완료 시간", value=time(18, 0))
+        end_time = st.time_input("yard 완료 시간")
         
     with col3:
-        start_dt = datetime.combine(start_date, start_time_val)
-        end_dt = datetime.combine(end_date, end_time_val)
+        start_dt = datetime.combine(start_date, start_time)
+        end_dt = datetime.combine(end_date, end_time)
         
         time_diff = end_dt - start_dt
         actual_hours = round(time_diff.total_seconds() / 3600, 2)

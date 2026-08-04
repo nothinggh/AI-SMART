@@ -66,6 +66,7 @@ if tab == "1. 설치 공정 등록":
             ship_no = st.text_input("호선 번호").upper()
             dwg_no = st.text_input("dwg no").upper()
             unit_options = [
+                " ",
                 "UNIT-A",
                 "UNIT-B",
                 "UNIT-C",
@@ -90,7 +91,7 @@ if tab == "1. 설치 공정 등록":
             end_time = st.time_input("설치 완료 시간")
 
         with col3:
-            vendor_options = ["AA", "BB", "CC"]
+            vendor_options = [" ", "AA", "BB", "CC"]
             vendor = st.selectbox("설치 업체", vendor_options)
             workers = st.number_input("설치 투입 인원", min_value=0, step=1)
             manager = st.text_input("설치 관리자").upper()
@@ -217,7 +218,7 @@ elif tab == "2. 설치 공정 관리":
             "UNIT-J",
         ]
         status_options = ["설치 중", "보류", "파손", "완료", "출고"]
-        vendor_options = ["AA", "BB", "CC"]
+        vendor_options = [ "AA", "BB", "CC"]
 
         edited_df = st.data_editor(
             df,

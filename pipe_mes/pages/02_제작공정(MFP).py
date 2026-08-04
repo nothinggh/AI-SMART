@@ -73,7 +73,7 @@ def get_next_lot_no(ship_no, dwg_type, vendor, dwg_no):
     return f"{prefix}{suffix}"
 
 
-st.title("📐 제작 공정(MFP)")
+st.title("🔧 제작 공정(MFP)")
 st.markdown("##### (Manufacturing Process)")
 st.markdown("---")
 
@@ -95,7 +95,7 @@ if tab_choice == "1. 제작 공정 등록":
             dwg_no = st.text_input("도면 번호").strip().upper()
             
         vendor = st.text_input("제작 업체명").strip().upper()
-        factory = st.selectbox("배치 공장", ["공장A", "공장B", "공장C"])
+        factory = st.selectbox("배치 공장", [" ", "공장A", "공장B", "공장C"])
         receipt_date = st.date_input("제작 도면 접수 일자")
         weight = st.number_input("중량", min_value=0.0, step=0.1)
 
