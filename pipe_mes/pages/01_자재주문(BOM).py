@@ -180,48 +180,53 @@ elif tab_choice == "2. 전체 주문 관리":
 
         with col1:
             if st.button("선택 항목 수정 저장"):
-                conn = sqlite3.connect(DB_PATH)
-                cursor = conn.cursor()
+                selected_rows = edited_df[edited_df["선택"] == True]
 
-                for _, row in edited_df.iterrows():
-                    item_type = str(row["item_type"]).upper()
-                    material = str(row["material"]).upper()
-                    size = str(row["size"]).upper()
-                    quantity = int(row["quantity"])
+                if selected_rows.empty:
+                    st.warning("수정할 항목을 선택해주세요.")
+                else:
+                    conn = sqlite3.connect(DB_PATH)
+                    cursor = conn.cursor()
 
-                    unit_weight = WEIGHT_DATA.get(item_type, {}).get(size, 0.0)
-                    unit_price = PRICE_DATA.get(item_type, {}).get(size, 0)
+                    for _, row in selected_rows.iterrows():   # ← 선택된 행만
+                        item_type = str(row["item_type"]).upper()
+                        material = str(row["material"]).upper()
+                        size = str(row["size"]).upper()
+                        quantity = int(row["quantity"])
 
-                    total_weight = round(unit_weight * quantity, 2)
-                    total_price = round(unit_price * quantity, 0)
+                        unit_weight = WEIGHT_DATA.get(item_type, {}).get(size, 0.0)
+                        unit_price = PRICE_DATA.get(item_type, {}).get(size, 0)
 
-                    if material in ["STEEL", "SUS"] and size in ["8A", "10A"]:
-                        st.error(f"ID {row['id']} : STEEL/SUS 8A,10A 불가")
-                        continue
+                        total_weight = round(unit_weight * quantity, 2)
+                        total_price = round(unit_price * quantity, 0)
 
-                    if material == "COPPER" and size not in ["8A", "10A"]:
-                        st.error(f"ID {row['id']} : COPPER SIZE 오류")
-                        continue
+                        if material in ["STEEL", "SUS"] and size in ["8A", "10A"]:
+                            st.error(f"ID {row['id']} : STEEL/SUS 8A,10A 불가")
+                            continue
 
-                    cursor.execute("""
-                        UPDATE BOM SET
-                        user_id=?, ship_no=?, item_type=?, material=?, size=?,
-                        quantity=?, weight=?, price=?, order_date=?, request_note=?
-                        WHERE id=?
-                    """, (
-                        str(row["user_id"]).upper(),
-                        str(row["ship_no"]).upper(),
-                        item_type, material, size, quantity,
-                        total_weight, total_price,
-                        str(row["order_date"]),
-                        str(row["request_note"]).upper(),
-                        int(row["id"])
-                    ))
+                        if material == "COPPER" and size not in ["8A", "10A"]:
+                            st.error(f"ID {row['id']} : COPPER SIZE 오류")
+                            continue
 
-                conn.commit()
-                conn.close()
-                st.success("수정 사항 저장 완료")
-                st.rerun()
+                        cursor.execute("""
+                            UPDATE BOM SET
+                            user_id=?, ship_no=?, item_type=?, material=?, size=?,
+                            quantity=?, weight=?, price=?, order_date=?, request_note=?
+                            WHERE id=?
+                        """, (
+                            str(row["user_id"]).upper(),
+                            str(row["ship_no"]).upper(),
+                            item_type, material, size, quantity,
+                            total_weight, total_price,
+                            str(row["order_date"]),
+                            str(row["request_note"]).upper(),
+                            int(row["id"])
+                        ))
+
+                    conn.commit()
+                    conn.close()
+                    st.success("수정 사항 저장 완료")
+                    st.rerun()
 
         with col2:
             if st.button("선택 항목 삭제"):
