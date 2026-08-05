@@ -1,6 +1,5 @@
 import pandas as pd  # type: ignore
 import streamlit as st
-import os
 
 from src.queries import (
     bom_summary_by_ship,
@@ -11,7 +10,6 @@ from src.queries import (
 
 # PAGE
 st.set_page_config(page_title="대시보드", layout="wide")  # page_icon="🚢"
-
 
 # CSS
 st.markdown(

@@ -401,3 +401,5 @@ with st.expander("📘 공정별 상세 설명 보기", expanded=False):
     """,
         unsafe_allow_html=True,
     )
+
+st.link_button("ppt 자료보기","https://docs.google.com/presentation/d/1BJznWNnaE7Px5noCOgASI2M8iWS97NR7/edit?usp=sharing&ouid=111091187905155646024&rtpof=true&sd=true")
