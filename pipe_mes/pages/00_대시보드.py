@@ -388,16 +388,6 @@ def state_icon(percent, issues=0):
 st.title("📌 진행호선 🚢SN101/201/301")
 st.divider()
 
-# with st.expander("🔍 원본 데이터 확인 (디버그용)"):
-#     st.write(
-#         "MFP 원본 컬럼:", list(df_mfp.columns) if not df_mfp.empty else "데이터 없음"
-#     )
-#     if not df_mfp.empty and "issue_desc" in df_mfp.columns:
-#         st.write("issue_desc 값별 건수:")
-#         st.dataframe(df_mfp["issue_desc"].astype(str).str.strip().value_counts())
-#     st.dataframe(df_mfp)
-
-
 # SHIP LOOP
 for ship in target_hulls:
 
@@ -515,16 +505,16 @@ for ship in target_hulls:
                 bom_issues = int(bom["issues"].sum())
 
         st.markdown(
-            f"""
-<div class="process-card complete">
+    f"""
+<div class="process-card {state_class(100, bom_issues)}">
     <h3>📦 BOM</h3>
     <div class="value">{qty:,} EA</div>
     <div class="rate">{weight_ton:,.1f} ton</div>
     {footer_html("자재 주문", bom_issues)}
 </div>
 """,
-            unsafe_allow_html=True,
-        )
+    unsafe_allow_html=True,
+)
 
     # MFP
     with cols[1]:

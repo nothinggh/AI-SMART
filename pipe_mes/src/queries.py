@@ -32,7 +32,7 @@ def table_list():
 
 
 def bom_summary_by_ship(keyword: str = ""):
-    """호선(ship_no)별 BOM 총수량, 총중량, 총금액을 집계합니다."""
+    """호선(ship_no)별 BOM 총수량, 총중량, 총금액, 이슈건수를 집계합니다."""
     where = ["ship_no IS NOT NULL AND ship_no != ''"]
     params = []
 
@@ -48,7 +48,13 @@ def bom_summary_by_ship(keyword: str = ""):
             ship_no,
             COALESCE(SUM(quantity), 0) AS total_quantity,
             ROUND(COALESCE(SUM(weight), 0), 2) AS total_weight,
-            COALESCE(SUM(price * quantity), 0) AS total_price
+            COALESCE(SUM(price * quantity), 0) AS total_price,
+            SUM(
+                CASE
+                    WHEN TRIM(UPPER(COALESCE(request_note, ''))) NOT IN ('', '없음', 'NAN', 'NONE')
+                    THEN 1 ELSE 0
+                END
+            ) AS issues
         FROM BOM
         WHERE {where_clause}
         GROUP BY ship_no
