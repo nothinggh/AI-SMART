@@ -114,8 +114,6 @@ def render_tab(direction: str) -> None:
 # PAGE
 st.set_page_config(page_title="LOT 조회", layout="wide")
 st.title("🔍 LOT 조회")
-# st.caption(f"DB \uacbd\ub85c: {DB_PATH}")
-# st.caption("JOIN: MFP.dwg_no = INSP.dwg_no, INSP.ship_no + unit_no = YDP.ship_no + unit_no")
 
 forward_tab, reverse_tab = st.tabs([
     "\uc815\ubc29\ud5a5 (제작 \u2192 설치 \u2192 YARD)",

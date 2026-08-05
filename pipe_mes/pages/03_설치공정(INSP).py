@@ -154,7 +154,7 @@ elif tab == "2. 설치 공정 관리":
     total_rows = len(df)  # DB 전체 행 수
 
     if not df.empty:
-        # --- 검색 필터링 영역 ---
+        # 검색 필터
         col_search1, col_search2 = st.columns([1, 3])
         with col_search1:
             search_col = st.selectbox("검색 항목", ["전체"] + list(df.columns))
@@ -177,13 +177,13 @@ elif tab == "2. 설치 공정 관리":
         else:
             filtered_df = df.copy()
 
-        # --- 요약 현황판 계산 (전체 행 수, 검색 행 수, 수량/지표) ---
+        # 요약 현황
         filtered_rows = len(filtered_df)
         total_weight = filtered_df["weight"].sum() if not filtered_df.empty else 0.0
         total_workers = filtered_df["workers"].sum() if not filtered_df.empty else 0
         total_duration = filtered_df["duration"].sum() if not filtered_df.empty else 0.0
 
-        # --- 지표 카드 (st.metric) 출력 ---
+        # 지표 카드
         st.markdown("### 설치 공정 현황")
         m1, m2, m3, m4, m5 = st.columns(5)
         m1.metric("전체 건수", f"{total_rows:,} 건")
@@ -194,7 +194,7 @@ elif tab == "2. 설치 공정 관리":
 
         st.markdown("---")
 
-        # --- 전체 선택 처리 ---
+        # 전체 선택
         col_btn1, col_btn2, _ = st.columns([1, 1, 8])
         with col_btn1:
             select_all = st.checkbox("전체 선택")
@@ -208,7 +208,7 @@ elif tab == "2. 설치 공정 관리":
         else:
             filtered_df["선택"] = select_all
 
-        # 열 순서 정렬
+        # 열 순서
         filtered_df = filtered_df[
             [
                 "선택",

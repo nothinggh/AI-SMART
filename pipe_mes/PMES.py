@@ -257,7 +257,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
 )
 
 
-# HERO SECTION
 st.markdown(
     """
 <div class="hero-box">
@@ -282,7 +281,6 @@ PMES (Piping Manufacturing Execution System)
 )
 
 
-# PURPOSE
 st.subheader("🎯 개발 목적")
 purpose_col = st.columns(4)
 purpose_data = [
@@ -301,7 +299,7 @@ for col, data in zip(purpose_col, purpose_data):
             """)
 st.divider()
 
-# PROCESS FLOW
+
 st.subheader("⚙️ 배관 작업 프로세스")
 steps = [
     {
@@ -392,7 +390,6 @@ for i, step in enumerate(steps):
             )
 
 
-# DETAIL
 st.markdown("<br>", unsafe_allow_html=True)
 with st.expander("📘 공정별 상세 설명 보기", expanded=False):
     st.markdown(

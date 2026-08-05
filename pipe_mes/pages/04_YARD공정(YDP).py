@@ -170,7 +170,7 @@ elif menu == "2. YARD 공정 관리":
     else:
         filtered_df = df.copy()
 
-    # --- 요약 현황판 계산 (전체 건수, 검색 건수, 주요 합계 지표) ---
+    # 요약 현황
     filtered_rows = len(filtered_df)
     total_headcount = (
         filtered_df["headcount"].sum() if not filtered_df.empty else 0
@@ -179,7 +179,7 @@ elif menu == "2. YARD 공정 관리":
         filtered_df["actual_hours"].sum() if not filtered_df.empty else 0.0
     )
 
-    # --- 지표 카드 (st.metric) 출력 ---
+    # 지표 카드
     st.markdown("### YARD 공정 현황")
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("전체 건수", f"{total_rows:,} 건")

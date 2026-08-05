@@ -3,7 +3,7 @@ import pandas as pd  # type: ignore
 import streamlit as st
 from datetime import datetime
 
-# PAGE CONFIG
+# PAGE
 st.set_page_config(page_title="자재 주문(BOM)", layout="wide")
 
 DB_PATH = "/home/smart/work/pipe_mes/sql/pipe_mes.db"
@@ -117,7 +117,7 @@ elif tab_choice == "2. 전체 주문 관리":
     total_rows = len(df_raw)  # DB 전체 행 수
     df = df_raw.copy()
 
-    # --- 검색 영역 ---
+    # 검색 영역
     col_search1, col_search2 = st.columns(2)
     with col_search1:
         search_col = st.selectbox("검색 컬럼 선택", ["전체"] + list(df.columns))
@@ -135,7 +135,7 @@ elif tab_choice == "2. 전체 주문 관리":
     total_qty = df["quantity"].sum() if not df.empty else 0  # 검색된 항목의 총 수량
     total_price_sum = df["price"].sum() if not df.empty else 0  # 검색된 항목의 총 금액
 
-    # --- 현황 요약 현황판 (Metrics) ---
+    # 현황 요약 현황
     st.markdown("### 자재 주문 현황")
     m1, m2, m3, m4 = st.columns(4)
     m1.metric(label="전체 등록 건수", value=f"{total_rows:,} 건")
@@ -145,7 +145,7 @@ elif tab_choice == "2. 전체 주문 관리":
 
     st.markdown("---")
 
-    # --- 전체 선택 및 테이블 표시 ---
+    # 전체 선택, 테이블
     if "select_all" not in st.session_state:
         st.session_state.select_all = False
 
@@ -188,7 +188,7 @@ elif tab_choice == "2. 전체 주문 관리":
                     conn = sqlite3.connect(DB_PATH)
                     cursor = conn.cursor()
 
-                    for _, row in selected_rows.iterrows():   # ← 선택된 행만
+                    for _, row in selected_rows.iterrows():
                         item_type = str(row["item_type"]).upper()
                         material = str(row["material"]).upper()
                         size = str(row["size"]).upper()

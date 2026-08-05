@@ -1,5 +1,6 @@
 import pandas as pd  # type: ignore
 import streamlit as st
+import os
 
 from src.queries import (
     bom_summary_by_ship,
@@ -307,13 +308,7 @@ st.markdown(
 )
 
 
-# DATA (캐싱 + 예외 처리)
-# 원본 쿼리 함수 자체(src/queries.py)에 @st.cache_data를 붙이는 것이 가장 좋지만,
-# 이 파일만으로도 캐시 효과를 보도록 로컬 래퍼 함수로 감쌌습니다.
-# 쿼리 실패 시 앱이 죽지 않고 에러 메시지를 보여주고 빈 DataFrame으로 대체됩니다.
-
-
-@st.cache_data(ttl=300)  # 5분 캐시. 데이터 갱신 주기에 맞게 조정하세요.
+@st.cache_data(ttl=300)
 def _load_bom():
     return bom_summary_by_ship()
 
@@ -336,7 +331,7 @@ def _load_ydp():
 def _safe_load(loader, label):
     try:
         return loader()
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         st.error(f"{label} 데이터를 불러오지 못했습니다: {e}")
         return pd.DataFrame()
 
@@ -388,7 +383,7 @@ def state_icon(percent, issues=0):
 st.title("📌 진행호선 🚢SN101/201/301")
 st.divider()
 
-# SHIP LOOP
+# SHIP
 for ship in target_hulls:
 
     bom = df_bom[df_bom.ship_no == ship] if not df_bom.empty else pd.DataFrame()
@@ -397,9 +392,9 @@ for ship in target_hulls:
     ydp = df_ydp[df_ydp.ship_no == ship] if not df_ydp.empty else pd.DataFrame()
 
     rates = []
-    total_issues = 0  # 전체 이슈 건수 변수 초기화
+    total_issues = 0  
 
-    # BOM (먼저 집계)
+    # BOM
     bom_qty = 0
     bom_weight_ton = 0.0
     bom_issues = 0
@@ -467,7 +462,7 @@ for ship in target_hulls:
 
     total_rate = int(sum(rates) / len(rates)) if rates else 0
 
-    # HEADER (진행률 및 이슈 건수)
+    # HEADER
     st.markdown(
         f"""
 <div class="ship-card">
@@ -492,7 +487,7 @@ for ship in target_hulls:
 
     cols = st.columns(4)
 
-    # 카드 하단 "라벨 · 이슈 N건"을 가로로 배치하는 공통 헬퍼
+    # 카드
     def footer_html(label, issues):
         cls = "issue-bad" if issues > 0 else "issue-ok"
         mark = "⚠️ " if issues > 0 else ""

@@ -158,7 +158,7 @@ elif tab_choice == "2. 제작 공정 관리":
 
     total_rows = len(df)  # DB 전체 행 수
 
-    # --- 검색 필터링 영역 ---
+    # 검색 필터링
     col_s1, col_s2 = st.columns([1, 3])
     with col_s1:
         search_col = st.selectbox("검색 컬럼", ["전체"] + list(df.columns))
@@ -174,7 +174,7 @@ elif tab_choice == "2. 제작 공정 관리":
     else:
         filtered_df = df.copy()
 
-    # --- 현황 요약 (행 수 및 주요 통계 지표) ---
+    # 현황 요약
     filtered_rows = len(filtered_df)  # 검색된 행 수
     total_weight_sum = filtered_df["weight"].sum() if not filtered_df.empty else 0.0  # 총 중량
     total_duration_sum = filtered_df["duration"].sum() if not filtered_df.empty else 0.0  # 총 투입 시간
@@ -188,7 +188,7 @@ elif tab_choice == "2. 제작 공정 관리":
 
     st.markdown("---")
 
-    # --- 데이터 편집 테이블 및 버튼 ---
+    # 데이터 편집
     if not filtered_df.empty:
         select_all = st.checkbox("전체 선택 / 해제")
         filtered_df.insert(0, "선택", select_all)

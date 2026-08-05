@@ -88,7 +88,6 @@ def filter_data(data: pd.DataFrame, keyword: str) -> pd.DataFrame:
 # PAGE
 st.set_page_config(page_title="전체 조회", layout="wide")
 st.title("🔍 전체 조회")
-# st.caption(f"DB 경로: {DB_PATH}")
 
 try:
     db_mtime = DB_PATH.stat().st_mtime

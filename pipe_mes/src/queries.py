@@ -15,9 +15,7 @@ def table_counts():
         SELECT 'YDP' AS table_name, COUNT(*) AS row_count FROM YDP
         """)
 
-
-##########################################################################
-
+# -----------------------------------------------------------------------------------------------
 
 def table_list():
     return fetch_dataframe("""
@@ -27,9 +25,7 @@ def table_list():
         ORDER BY name
         """)
 
-
-##########################################################################
-
+# -----------------------------------------------------------------------------------------------
 
 def bom_summary_by_ship(keyword: str = ""):
     """호선(ship_no)별 BOM 총수량, 총중량, 총금액, 이슈건수를 집계합니다."""
@@ -63,9 +59,7 @@ def bom_summary_by_ship(keyword: str = ""):
         tuple(params),
     )
 
-
-##########################################################################
-
+# -----------------------------------------------------------------------------------------------
 
 def item_type_counts():
     """품목 타입(item_type)별 수량, 중량, 금액 집계"""
@@ -80,9 +74,7 @@ def item_type_counts():
         ORDER BY item_type
         """)
 
-
-##########################################################################
-
+# -----------------------------------------------------------------------------------------------
 
 def bom_by_ship_no(ship_no: str):
     return fetch_dataframe(
@@ -106,9 +98,7 @@ def bom_by_ship_no(ship_no: str):
         (ship_no,),
     )
 
-
-##########################################################################
-
+# -----------------------------------------------------------------------------------------------
 
 def get_ship_summary_df():
     query = """
@@ -139,13 +129,11 @@ def get_ship_summary_df():
 df_result = get_ship_summary_df()
 print(df_result)
 
-##########################################################################
-
+# -----------------------------------------------------------------------------------------------
 
 def load_drawing_status(target_hulls: list[str] | None = None) -> pd.DataFrame:
     """DB(MFP 테이블)에서 데이터를 조회하여 호선별 집계 데이터를 생성합니다."""
 
-    # SQL 쿼리문
     query = """
         SELECT 
             ship_no,
@@ -156,11 +144,10 @@ def load_drawing_status(target_hulls: list[str] | None = None) -> pd.DataFrame:
     """
     df = fetch_dataframe(query)
 
-    # DB가 없을 경우 DataFrame 반환
     if df.empty:
         return pd.DataFrame()
 
-    # target_hulls가 지정되지 않았으면 DB에 존재하는 모든 호선 대상
+
     if target_hulls is None:
         target_hulls = sorted(
             [s for s in df["ship_no"].dropna().unique() if str(s).strip()]
@@ -199,14 +186,14 @@ def load_drawing_status(target_hulls: list[str] | None = None) -> pd.DataFrame:
                 & (issue_series.str.lower() != "nan")
             ).sum()
 
-            # 진행상황 판정
+            # 진행상황
             current_status = (
                 "완료"
                 if (total_count > 0 and completed_count == total_count)
                 else "진행 중"
             )
 
-            # 작업자 목록 (중복, 빈값 제거 후 연결)
+            # 작업자
             unique_workers = [
                 w
                 for w in df_hull["worker"].dropna().astype(str).str.strip().unique()
@@ -228,7 +215,7 @@ def load_drawing_status(target_hulls: list[str] | None = None) -> pd.DataFrame:
     return pd.DataFrame(summary_list)
 
 
-##########################################################################
+# -----------------------------------------------------------------------------------------------
 
 def load_insp_status():
 
@@ -257,7 +244,7 @@ def load_insp_status():
     return fetch_dataframe(query)
 
 
-##########################################################################
+# -----------------------------------------------------------------------------------------------
 
 
 def load_ydp_status():
@@ -308,4 +295,4 @@ def load_ydp_status():
 
     return fetch_dataframe(query)
 
-##########################################################################
+# -----------------------------------------------------------------------------------------------
