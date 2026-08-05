@@ -399,6 +399,19 @@ for ship in target_hulls:
     rates = []
     total_issues = 0  # 전체 이슈 건수 변수 초기화
 
+    # BOM (먼저 집계)
+    bom_qty = 0
+    bom_weight_ton = 0.0
+    bom_issues = 0
+
+    if not bom.empty:
+        bom_qty = int(bom["total_quantity"].sum())
+        bom_weight_ton = round(bom["total_weight"].sum() / 1000, 1)
+        if "issues" in bom.columns:
+            bom_issues = int(bom["issues"].sum())
+
+    total_issues += bom_issues
+
     # MFP
     mfp_done = 0
     mfp_total = 0
@@ -408,12 +421,10 @@ for ship in target_hulls:
         mfp_done = int(mfp["완료건수"].sum())
         mfp_total = int(mfp["도면건수"].sum())
 
-    # load_drawing_status()가 이미 호선별로 이슈건수를 집계해서 내려줍니다.
     if "이슈건수" in mfp.columns:
         mfp_issues = int(mfp["이슈건수"].sum())
 
     total_issues += mfp_issues
-
     mfp_rate = rate(mfp_done, mfp_total)
     rates.append(mfp_rate)
 
@@ -492,7 +503,8 @@ for ship in target_hulls:
             f"</div>"
         )
 
-    # BOM
+
+    # BOM 
     with cols[0]:
         qty = 0
         weight_ton = 0.0
@@ -504,17 +516,20 @@ for ship in target_hulls:
             if "issues" in bom.columns:
                 bom_issues = int(bom["issues"].sum())
 
+        total_issues += bom_issues
+
         st.markdown(
-    f"""
+            f"""
 <div class="process-card {state_class(100, bom_issues)}">
     <h3>📦 BOM</h3>
-    <div class="value">{qty:,} EA</div>
-    <div class="rate">{weight_ton:,.1f} ton</div>
+    <div class="value">{bom_qty:,} EA</div>
+    <div class="rate">{bom_weight_ton:,.1f} ton</div>
     {footer_html("자재 주문", bom_issues)}
 </div>
 """,
-    unsafe_allow_html=True,
-)
+            unsafe_allow_html=True,
+        )
+
 
     # MFP
     with cols[1]:
